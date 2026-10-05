@@ -46,12 +46,115 @@ AstrBot 热重载 biliVideo 插件时会重新加载其模块，补丁可能被�
 
 ## 安装
 
+> 前置要求：你的 AstrBot 已能正常运行，且已安装
+> [astrbot_plugin_biliVideo](https://github.com/storyAura/astrbot_plugin_biliVideo)
+>（本插件是它的补丁，不依赖它就无法工作）。
+
+### 第一步：获取插件源码
+
+任选一种方式：
+
+**方式 A：git clone（推荐）**
+
 ```bash
-# 将插件目录放到 AstrBot 插件目录
-cp -r astrbot_plugin_bili_cardfix /AstrBot/data/plugins/
-# 重启 AstrBot 使插件被扫描加载（或 WebUI 重载）
-docker restart astrbot
+git clone https://github.com/HYLinF/astrbot_plugin_bili_cardfix.git
 ```
+
+**方式 B：下载 ZIP**
+
+打开仓库页面 → 绿色 **Code** 按钮 → **Download ZIP** → 解压。
+注意：ZIP 解压出来的文件夹名会带分支后缀（如 `astrbot_plugin_bili_cardfix-main`），
+建议重命名为 `astrbot_plugin_bili_cardfix`，方便后续操作与识别。
+
+### 第二步：找到你的 AstrBot 插件目录
+
+插件目录就是 AstrBot 的 `data/plugins/` 目录，位置取决于你的部署方式：
+
+| 部署方式 | 插件目录位置 |
+| --- | --- |
+| Docker（soulter/astrbot 镜像） | 容器内固定为 `/AstrBot/data/plugins/` |
+| 本机直接运行（pip / 源码启动） | AstrBot 程序目录下的 `data/plugins/`（如 `D:\AstrBot\data\plugins\`、`/root/AstrBot/data/plugins/`） |
+
+Docker 部署时，先确认容器是否挂载了宿主机目录（挂载了就直接往宿主机对应路径放文件，更方便）：
+
+```bash
+docker inspect astrbot | grep -A 5 '"Mounts"'
+# 如果看到 /AstrBot 或 data 目录的挂载映射，记下宿主机路径
+```
+
+### 第三步：把插件放进插件目录
+
+最终效果是插件目录下出现 `astrbot_plugin_bili_cardfix/main.py`。
+
+**情况 1：本机直接运行**
+
+把整个 `astrbot_plugin_bili_cardfix` 文件夹复制到插件目录。
+
+```bash
+# Linux / macOS
+cp -r astrbot_plugin_bili_cardfix /root/AstrBot/data/plugins/
+
+# Windows（PowerShell），假设 AstrBot 装在 D:\AstrBot
+Copy-Item -Recurse astrbot_plugin_bili_cardfix D:\AstrBot\data\plugins\
+```
+
+**情况 2：Docker，且插件目录挂载了宿主机路径**
+
+直接把文件夹复制到宿主机对应的挂载路径（参照第二步查到的 Mounts）。
+
+**情况 3：Docker，未挂载插件目录**
+
+用 `docker cp` 把文件夹拷进容器，并修正权限：
+
+```bash
+docker cp astrbot_plugin_bili_cardfix astrbot:/AstrBot/data/plugins/
+docker exec astrbot chmod -R a+rX /AstrBot/data/plugins/astrbot_plugin_bili_cardfix
+```
+
+> ⚠️ 无论哪种方式，请确认复制后**插件目录里没有嵌套重复**，即路径是
+> `<插件目录>/astrbot_plugin_bili_cardfix/main.py`，而不是
+> `<插件目录>/astrbot_plugin_bili_cardfix/astrbot_plugin_bili_cardfix/main.py`。
+
+### 第四步：重启 AstrBot 加载插件
+
+```bash
+# Docker
+docker restart astrbot
+
+# 本机运行：重启 AstrBot 进程，或 WebUI → 插件管理 → 重载
+```
+
+重启期间机器人会短暂离线（约 30~60 秒），属正常现象。
+重启后 AstrBot 会自动扫描 `data/plugins/` 目录并加载新插件。
+
+### 第五步：验证安装成功
+
+1. **看日志**（Docker：`docker logs astrbot`；本机：看控制台输出），应出现：
+
+   ```
+   biliVideo 卡片识别补丁已生效
+   ```
+
+   如果出现的是 `暂未生效`，说明 biliVideo 还没加载完，收到下一条群消息时会自动重试，无需处理。
+
+2. **群内自检**：给机器人发 `/卡片补丁状态`（别名 `/cardfix`），应显示：
+
+   ```
+   📌 biliVideo 卡片识别补丁
+   状态: ✅ 已生效
+   自检: ...（三项全部 ✅）
+   ```
+
+3. **实测**：往群里发一个 B站视频的小卡片（不是纯文本链接），机器人应自动回复视频信息（封面、UP主、播放量等）。若纯文本链接正常、卡片无响应，说明补丁未生效，按下面「常见问题」排查。
+
+### 常见问题（FAQ）
+
+| 现象 | 原因与处理 |
+| --- | --- |
+| 日志/命令显示 `暂未生效` | biliVideo 尚未加载。重启后等 1 分钟再试，或手动发一条消息触发自愈 |
+| 插件目录已放好但没被加载 | 确认目录下有 `main.py`；重启而非仅热重载；检查权限（见第三步） |
+| 复制后多了一层同名目录 | 参考第三步的警告，把外层多余目录删掉，只保留 `astrbot_plugin_bili_cardfix/main.py` |
+| 之前装过旧版补丁 | 先删除旧插件目录再安装新版本，避免重复补丁 |
 
 ## 使用
 
