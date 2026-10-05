@@ -1,0 +1,10 @@
+name: astrbot_plugin_bili_cardfix
+display_name: biliVideo 卡片识别补丁
+desc: 为 astrbot_plugin_biliVideo 恢复新版 QQ B站小卡片的自动识别。运行时补丁，不改动原插件任何源码；热重载后自动自愈。
+short_desc: biliVideo 小卡片识别补丁（运行时补丁）
+version: v1.0.0
+author: hylin
+repo: ""
+support_platforms:
+  - aiocqhttp
+astrbot_version: ">=4.16"
